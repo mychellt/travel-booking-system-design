@@ -1,0 +1,69 @@
+@startuml
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+AddRelTag("async", $lineStyle = DashedLine())
+
+
+!define DEVICONS https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/devicons
+!define FONTAWESOME https://raw.githubusercontent.com/tupadr3/plantuml-icon-font-sprites/master/font-awesome-5
+!include DEVICONS/react.puml
+!include DEVICONS/java.puml
+!include DEVICONS/postgresql.puml
+!include FONTAWESOME/users.puml
+
+LAYOUT_WITH_LEGEND()
+
+title "GFT Challenge - Travel Booking Service"
+
+Person(client, "Client", "User who wants booking a travel")
+
+System_Boundary(travel_booking_service, "Travel Booking Service") {
+    Container(spa, "SPA", "React", "Web App", $sprite="react")
+    Container(travelbooking_service, "Travel Booking Service", "Java/Spring Boot", "", $sprite="java")
+    Container(hotelreservation_service, "Hotel Reservation Service", "Java/Spring Boot", "", $sprite="java")
+    Container(carreservation_service, "Car Reservation Service", "Java/Spring Boot", "", $sprite="java")
+    Container(flightreservation_service, "Flight Reservation Service", "Java/Spring Boot", "", $sprite="java")
+
+    ContainerQueue(carreservation_queue, "Car Reservation Queue", "RabbitMQ", "")
+    ContainerQueue(hotelreservation_queue, "Hotel Reservation Queue", "RabbitMQ", "")
+    ContainerQueue(flightreservation_queue, "Flight Reservation", "RabbitMQ", "")
+    ContainerQueue(carreservationconfirmation_queue, "Car Reservation Confirmation Queue", "RabbitMQ", "")
+    ContainerQueue(hotelreservationconfirmation_queue, "Hotel Reservation Confirmation Queue", "RabbitMQ", "")
+    ContainerQueue(flightreservationconfirmation_queue, "Flight Reservation Confirmation Queue", "RabbitMQ", "")
+
+
+    Rel(travelbooking_service, carreservation_queue, "Publish","Car Reservation", $tags = "async")
+    Rel(travelbooking_service, hotelreservation_queue, "Publish","Hotel Reservation", $tags = "async")
+    Rel(travelbooking_service, flightreservation_queue, "Publish","Flight Reservation", $tags = "async")
+    Rel(flightreservationconfirmation_queue, travelbooking_service, "Consume","Flight Reservation Confirmation", $tags = "async")
+    Rel(hotelreservationconfirmation_queue, travelbooking_service, "Consume","Hotel Reservation Confirmation", $tags = "async")
+    Rel(carreservationconfirmation_queue, travelbooking_service, "Consume","Car Reservation Confirmation", $tags = "async")
+
+
+    Rel(carreservation_queue, carreservation_service, "Consume","Car Reservation", $tags = "async")
+    Rel(carreservation_service, carreservationconfirmation_queue, "Publish","Car Reservation Confirmation", $tags = "async")
+
+    Rel(hotelreservation_queue, hotelreservation_service, "Consume","Hotel Reservation", $tags = "async")
+    Rel(hotelreservation_service, hotelreservationconfirmation_queue, "Publish","Hotel Reservation Confirmation", $tags = "async")
+    
+    Rel(flightreservation_service, flightreservationconfirmation_queue, "Publish","Flight Reservation Confirmation", $tags = "async")
+    Rel(flightreservation_queue, flightreservation_service, "Consume","Flight Reservation Confirmation", $tags = "async")
+
+    ContainerDb(travelbooking_db,"Travel Booking DB","PostgreSQL", $sprite="postgresql")
+    ContainerDb(carrental_db,"Car Rental DB","PostgreSQL", $sprite="postgresql")
+    ContainerDb(hotelreservation_db,"Hotel Reservation DB","PostgreSQL", $sprite="postgresql")
+    ContainerDb(flightreservation_db,"Flight Reservation DB","PostgreSQL", $sprite="postgpostgresqlres")
+    
+
+    Rel(travelbooking_service, travelbooking_db, "Uses","PostgreSQL Driver")
+    Rel(hotelreservation_service, hotelreservation_db, "Uses","PostgreSQL Driver")
+    Rel(carreservation_service, carrental_db, "Uses","PostgreSQL Driver")
+    Rel(flightreservation_service, flightreservation_db, "Uses","PostgreSQL Driver")
+
+    Rel(client, spa, "Uses", "HTTPS")
+    Rel(spa, travelbooking_service, "Uses", "HTTPS")
+
+
+}
+
+@enduml
